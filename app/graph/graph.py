@@ -6,7 +6,8 @@ from app.graph.nodes import (
     handle_human,
     handle_order,
     handle_refund,
-    handle_unknown
+    handle_unknown,
+    generate_response
 )
 from app.graph.edges import route_intent
 
@@ -22,6 +23,7 @@ def build_support_graph():
     workflow.add_node('human', handle_human)
     workflow.add_node('refund', handle_refund)
     workflow.add_node('unknown', handle_unknown)
+    workflow.add_node('generate_final_response', generate_response)
 
     # Add fixed edges
 
@@ -40,11 +42,12 @@ def build_support_graph():
     )
 
     # final end nodes
-    workflow.add_edge('faq', END)
-    workflow.add_edge('order', END)
-    workflow.add_edge('human', END)
-    workflow.add_edge('refund',END)
-    workflow.add_edge('unknown', END)
+    workflow.add_edge('faq', "generate_final_response")
+    workflow.add_edge('order', "generate_final_response")
+    workflow.add_edge('human', "generate_final_response")
+    workflow.add_edge('refund',"generate_final_response")
+    workflow.add_edge('unknown', "generate_final_response")
+    workflow.add_edge('generate_final_response', END)
 
     return workflow.compile()
     

@@ -17,3 +17,14 @@ def get_classifier_llm():
     
     # Force the LLM to return data matching our Pydantic class
     return llm.with_structured_output(IntentExtraction)
+
+def get_general_llm():
+    """Returns an general LLM """
+    llm = ChatGoogleGenerativeAI(
+        api_key = credentials.gemini_api_key,
+        model="gemini-2.5-flash", # or "gpt-4o-mini"
+        temperature=0.0,      # Deterministic execution for structured extraction
+    )
+    
+    return llm
+

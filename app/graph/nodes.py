@@ -1,7 +1,9 @@
 from app.graph.state import SupportState
-from app.ai.llm import get_classifier_llm
+from app.ai.llm import get_classifier_llm, get_general_llm
+from app.tools import order_tool
 from app.ai.structured_output import IntentExtraction
 from langchain_core.messages import HumanMessage, SystemMessage
+
 
 classifier_llm = get_classifier_llm()
 
@@ -49,7 +51,7 @@ def classify_intent(state: SupportState) -> dict:
 
     return {
         "intent" : result.intent,
-        "order_number" : result.order_number
+        "order_number" : result.order_number,
     }
 
 
@@ -61,7 +63,13 @@ def handle_faq(state: SupportState) -> dict:
     return {"response": "Routing to FAQ handler..."}
 
 def handle_order(state: SupportState) -> dict:
-    return {"response": "Routing to Order handler..."}
+    order_number = state.get('order_number')
+    if not order_number:
+        return {"context": "No order number provided in user query."}
+    context_string = order_tool.fetch_order_details.invoke({'order_number':order_number})
+
+    return {'context':context_string}
+    
 
 def handle_refund(state: SupportState) -> dict:
     return {"response": "Routing to Refund handler..."}
@@ -71,3 +79,21 @@ def handle_human(state: SupportState) -> dict:
 
 def handle_unknown(state: SupportState) -> dict:
     return {"response": "Unable to determine intent. Routing to general fallback..."}
+
+def generate_response(state: SupportState) -> dict:
+    
+    llm = get_general_llm()
+
+    context = state.get("context")
+    user_message = state.get("user_message")
+    SYS_PROMPT = f"""You are a helpful, professional e-commerce customer support AI assistant.
+        Answer the customer's query accurately using ONLY the background context provided below.
+        If the context states that no order was found or an error occurred, explain that politely to the user.
+        BACKGROUND CONTEXT:\n{context}"""
+    message_array = [
+            SystemMessage(content=SYS_PROMPT),
+            HumanMessage(content=user_message)
+        ]
+    resposne = llm.invoke(message_array)
+    print(resposne.content)
+    return {"response" : resposne.content}
