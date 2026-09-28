@@ -6,10 +6,10 @@ def run_tests():
     app = build_support_graph()
 
     test_queries = [
-        "Where is my order ORD-2026-10001?",
-        # "What is your standard return policy?",
-        # "My laptop arrived damaged, let me speak with a representative!",
-        # "What is the status of my refund REF-2026-50001?"
+        # "Where is my order ORD-2026-10001?",
+        # "What is your standard return policy?"
+        "Check my refund status of order ORD-2026-10010 as I can see it is showing rejected in app",
+        "What is the status of my refund REF-2026-50002?"
     ]
 
     for query in test_queries:
@@ -18,6 +18,7 @@ def run_tests():
         print(f"User Message : {result.get('user_message')}")
         print(f"Extracted Intent : {result.get('intent')}")
         print(f"Order Number     : {result.get('order_number')}")
+        print(f"Order Number     : {result.get('refund_number')}")
         print(f"Graph Response   : {result.get('response')}")
 
 if __name__ == "__main__":

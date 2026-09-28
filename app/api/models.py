@@ -87,7 +87,7 @@ class Refund(Base):
     customer_id = Column(BigInteger, ForeignKey("customers.id"), nullable=False)
     refund_amount = Column(DECIMAL(10, 2), nullable=False)
     reason = Column(String(255), nullable=True)
-    status = Column(Enum("pending", "approved", "processed", "rejected", name="refund_status_enum"))
+    status = Column(Enum("processing", "completed", "processed", "rejected", name="refund_status_enum"))
     requested_at = Column(DateTime, nullable=True)
     completed_at = Column(DateTime, nullable=True)
 
@@ -123,6 +123,6 @@ class FAQArticle(Base):
     category = Column(String(100), nullable=False)
     question = Column(Text, nullable=False)
     answer = Column(Text, nullable=False)
-    status = Column(Enum("draft", "published", "archived", name="faq_status_enum"))
+    status = Column(Enum("draft", "active", "archived", name="faq_status_enum"))
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, onupdate=func.now())
