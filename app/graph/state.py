@@ -11,5 +11,6 @@ class SupportState(TypedDict):
     user_message : str
     intent : Optional[str]
     order_number : Optional[str]
+    refund_number : Optional[str]
     context : Optional[str]
     response : Optional[str]

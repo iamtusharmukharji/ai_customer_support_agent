@@ -1,6 +1,6 @@
 from app.graph.state import SupportState
 from app.ai.llm import get_classifier_llm, get_general_llm
-from app.tools import order_tool
+from app.tools import order_tool, faq_tool, refund_tool
 from app.ai.structured_output import IntentExtraction
 from langchain_core.messages import HumanMessage, SystemMessage
 
@@ -52,15 +52,14 @@ def classify_intent(state: SupportState) -> dict:
     return {
         "intent" : result.intent,
         "order_number" : result.order_number,
+        "refund_number" : result.refund_number
     }
 
 
-
-
-
-# Terminal dummy nodes for Milestone 1 routing verification
 def handle_faq(state: SupportState) -> dict:
-    return {"response": "Routing to FAQ handler..."}
+    faq_context = faq_tool.fetch_faq.invoke({})
+    return {"context": faq_context}
+
 
 def handle_order(state: SupportState) -> dict:
     order_number = state.get('order_number')
@@ -72,7 +71,20 @@ def handle_order(state: SupportState) -> dict:
     
 
 def handle_refund(state: SupportState) -> dict:
-    return {"response": "Routing to Refund handler..."}
+    order_number = state.get("order_number")
+    refund_number = state.get("refund_number")
+
+    # route tool call as per order_number or refund_number availability
+    if order_number:
+        context_string = refund_tool.fetch_refund.invoke({'reference_number':order_number, 'reference_type':'order_number'})
+    
+    elif refund_number:
+        context_string = refund_tool.fetch_refund.invoke({'reference_number':refund_number, 'reference_type':'refund_number'})
+
+    else:
+        context_string = "No order number or refund reference number was provided in the query."
+
+    return {"context": context_string}
 
 def handle_human(state: SupportState) -> dict:
     return {"response": "Escalating to Human Support Agent..."}
@@ -90,10 +102,12 @@ def generate_response(state: SupportState) -> dict:
         Answer the customer's query accurately using ONLY the background context provided below.
         If the context states that no order was found or an error occurred, explain that politely to the user.
         BACKGROUND CONTEXT:\n{context}"""
+    
     message_array = [
             SystemMessage(content=SYS_PROMPT),
             HumanMessage(content=user_message)
         ]
+    
     resposne = llm.invoke(message_array)
-    print(resposne.content)
+    # print(resposne.content)
     return {"response" : resposne.content}
