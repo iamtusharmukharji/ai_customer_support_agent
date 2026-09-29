@@ -8,8 +8,9 @@ def run_tests():
     test_queries = [
         # "Where is my order ORD-2026-10001?",
         # "What is your standard return policy?"
-        "Check my refund status of order ORD-2026-10010 as I can see it is showing rejected in app",
-        "What is the status of my refund REF-2026-50002?"
+        "I have an issue with the received order, please help me",
+        "My order number is ORD-2026-10536, In this order I have a laptop and a smartphone out of which the laptop is damaged"
+        # "What is the status of my refund REF-2026-50002?"
     ]
 
     for query in test_queries:
@@ -18,7 +19,8 @@ def run_tests():
         print(f"User Message : {result.get('user_message')}")
         print(f"Extracted Intent : {result.get('intent')}")
         print(f"Order Number     : {result.get('order_number')}")
-        print(f"Order Number     : {result.get('refund_number')}")
+        print(f"Refund Number     : {result.get('refund_number')}")
+        # print(f"Graph Response   : {result.get('escalation_issue')}")
         print(f"Graph Response   : {result.get('response')}")
 
 if __name__ == "__main__":

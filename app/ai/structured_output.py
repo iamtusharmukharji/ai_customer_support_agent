@@ -26,3 +26,5 @@ class IntentExtraction(BaseModel):
         description="Brief step-by-step reasoning for why this intent and these entities were selected."
     )
 
+
+

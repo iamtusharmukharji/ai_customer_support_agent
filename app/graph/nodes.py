@@ -1,11 +1,15 @@
 from app.graph.state import SupportState
-from app.ai.llm import get_classifier_llm, get_general_llm
-from app.tools import order_tool, faq_tool, refund_tool
+from app.ai.llm import get_classifier_llm, get_general_llm, get_support_ticket_llm
+from app.tools import order_tool, faq_tool, refund_tool, support_ticket_tool
 from app.ai.structured_output import IntentExtraction
+from app.api.schemas import NewSupportTicket
+import uuid
 from langchain_core.messages import HumanMessage, SystemMessage
 
 
 classifier_llm = get_classifier_llm()
+generic_llm = get_general_llm()
+support_ticket_llm = get_support_ticket_llm()
 
 SYSTEM_PROMPT = """
 You are an intent classification and entity extraction assistant for an e-commerce platform.
@@ -87,20 +91,48 @@ def handle_refund(state: SupportState) -> dict:
     return {"context": context_string}
 
 def handle_human(state: SupportState) -> dict:
-    return {"response": "Escalating to Human Support Agent..."}
+    order_number = state.get('order_number')
+    if not order_number:
+        return {"context": "order number and issue description is required to create ticket"}
+    details_for_new_ticket = order_tool.fetch_raw_order_details.invoke({'order_number':order_number, 'keys' : ['id', 'customer_id']})
+
+    # No order details found
+    if details_for_new_ticket.get("id") == None:
+        return {"context" : f"No order details found for order_number = {order_number}"}
+    
+    user_message = state.get('user_message')
+    ticket_num = f"TKT-2026-{uuid.uuid4().hex[:5].upper()}"
+    SYS_PROMPT = f"""
+    You are a AI assistant that extract data from user_prompt and
+    helps to create a new support ticket. Use exact data for below given keys
+    - ticket_number : {ticket_num}
+    - order_id : {details_for_new_ticket['id']}
+    - customer_id : {details_for_new_ticket['customer_id']}
+    Other details can be extarcted from user_prompt and provided details
+
+    """
+    message_array = [
+        SystemMessage(content=SYS_PROMPT),
+        HumanMessage(content=user_message)
+    ]
+
+    result : NewSupportTicket = support_ticket_llm.invoke(message_array)
+    create_ticket_tool_call = support_ticket_tool.create_new_support_ticket.invoke({'ticket_data':result})
+    return {"context": create_ticket_tool_call}
 
 def handle_unknown(state: SupportState) -> dict:
     return {"response": "Unable to determine intent. Routing to general fallback..."}
 
 def generate_response(state: SupportState) -> dict:
     
-    llm = get_general_llm()
+    
 
     context = state.get("context")
     user_message = state.get("user_message")
     SYS_PROMPT = f"""You are a helpful, professional e-commerce customer support AI assistant.
         Answer the customer's query accurately using ONLY the background context provided below.
         If the context states that no order was found or an error occurred, explain that politely to the user.
+        If the context states that new ticket is created for further escalation, explain that politely to the user.
         BACKGROUND CONTEXT:\n{context}"""
     
     message_array = [
@@ -108,6 +140,6 @@ def generate_response(state: SupportState) -> dict:
             HumanMessage(content=user_message)
         ]
     
-    resposne = llm.invoke(message_array)
+    resposne = generic_llm.invoke(message_array)
     # print(resposne.content)
     return {"response" : resposne.content}

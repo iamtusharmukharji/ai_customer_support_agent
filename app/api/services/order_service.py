@@ -22,7 +22,6 @@ def get_order_details(order_number:str) -> dict:
     finally:
         db.close()
 
-
 def get_order_refund_details_by_order_number(order_number:str) -> dict:
     db = SessionLocal()
     try:
@@ -48,7 +47,6 @@ def get_order_refund_details_by_order_number(order_number:str) -> dict:
 
     finally:
         db.close()
-
 
 def get_order_refund_details_by_refund_number(refund_number:str) -> dict:
     db = SessionLocal()
