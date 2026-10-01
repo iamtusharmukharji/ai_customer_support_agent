@@ -13,5 +13,5 @@ class NewSupportTicket(BaseModel):
     priority : Literal['low','medium','high','urgent']
     status : Literal['open','in_progress','waiting_customer','resolved','closed']
     assigned_team : Optional[str] = ''
-    created_at : datetime = datetime.now()
+    created_at : datetime = Field(default_factory=datetime.now)
     resolved_at : Optional[datetime] = None

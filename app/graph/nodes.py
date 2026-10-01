@@ -9,7 +9,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 
 classifier_llm = get_classifier_llm()
 generic_llm = get_general_llm()
-support_ticket_llm = get_support_ticket_llm()
+# support_ticket_llm = get_support_ticket_llm()
 
 SYSTEM_PROMPT = """
 You are an intent classification and entity extraction assistant for an e-commerce platform.
@@ -17,7 +17,7 @@ Analyze the user's input and classify it into one of these intents:
 - FAQ: Inquiries about general policies, returns, shipping times, or FAQs.
 - ORDER: Inquiries regarding order status, delivery date, item details, or tracking.
 - REFUND: Inquiries about refund status, processing times, or refund IDs.
-- HUMAN: Requests to speak to a agent, representative, or complaining about damaged items/escalations.
+- HUMAN: Requests to speak to a agent, representative, or complaining about damaged items/escalations, whith order_number otherwise ask user to provide order_number with issue description.
 - UNKNOWN: Inquiries that do not match any of the above or are completely ambiguous.
 
 Extract any explicit order numbers (e.g., ORD-2026-10002) or refund numbers (e.g., REF-2026-50001).
@@ -52,11 +52,14 @@ def classify_intent(state: SupportState) -> dict:
     ]
 
     result:IntentExtraction = classifier_llm.invoke(message_array)
-
+    print(result.model_dump())
     return {
         "intent" : result.intent,
         "order_number" : result.order_number,
-        "refund_number" : result.refund_number
+        "refund_number" : result.refund_number,
+        "tikcet_priority" : result.ticket_priority,
+        "ticket_subject" : result.ticket_subject,
+        "ticket_description" : result.ticket_description
     }
 
 
@@ -91,6 +94,7 @@ def handle_refund(state: SupportState) -> dict:
     return {"context": context_string}
 
 def handle_human(state: SupportState) -> dict:
+    
     order_number = state.get('order_number')
     if not order_number:
         return {"context": "order number and issue description is required to create ticket"}
@@ -100,24 +104,34 @@ def handle_human(state: SupportState) -> dict:
     if details_for_new_ticket.get("id") == None:
         return {"context" : f"No order details found for order_number = {order_number}"}
     
-    user_message = state.get('user_message')
+    # user_message = state.get('user_message')
     ticket_num = f"TKT-2026-{uuid.uuid4().hex[:5].upper()}"
-    SYS_PROMPT = f"""
-    You are a AI assistant that extract data from user_prompt and
-    helps to create a new support ticket. Use exact data for below given keys
-    - ticket_number : {ticket_num}
-    - order_id : {details_for_new_ticket['id']}
-    - customer_id : {details_for_new_ticket['customer_id']}
-    Other details can be extarcted from user_prompt and provided details
+    # SYS_PROMPT = f"""
+    # You are a AI assistant that extract data from user_prompt and
+    # helps to create a new support ticket. Use exact data for below given keys
+    # - ticket_number : {ticket_num}
+    # - order_id : {details_for_new_ticket['id']}
+    # - customer_id : {details_for_new_ticket['customer_id']}
+    # Other details can be extracted from user_prompt and provided details
 
-    """
-    message_array = [
-        SystemMessage(content=SYS_PROMPT),
-        HumanMessage(content=user_message)
-    ]
+    # """
+    # message_array = [
+    #     SystemMessage(content=SYS_PROMPT),
+    #     HumanMessage(content=user_message)
+    # ]
 
-    result : NewSupportTicket = support_ticket_llm.invoke(message_array)
-    create_ticket_tool_call = support_ticket_tool.create_new_support_ticket.invoke({'ticket_data':result})
+    # result : NewSupportTicket = support_ticket_llm.invoke(message_array)
+    ticket_data = NewSupportTicket(
+        ticket_number = ticket_num,
+        order_id = details_for_new_ticket['id'],
+        customer_id = details_for_new_ticket['customer_id'],
+        subject = state.get('ticket_subject'),
+        description = state.get('ticket_description'),
+        priority = state.get('ticket_priority'),
+        status = 'open'
+    )
+
+    create_ticket_tool_call = support_ticket_tool.create_new_support_ticket.invoke({'ticket_data':ticket_data})
     return {"context": create_ticket_tool_call}
 
 def handle_unknown(state: SupportState) -> dict:
@@ -125,8 +139,6 @@ def handle_unknown(state: SupportState) -> dict:
 
 def generate_response(state: SupportState) -> dict:
     
-    
-
     context = state.get("context")
     user_message = state.get("user_message")
     SYS_PROMPT = f"""You are a helpful, professional e-commerce customer support AI assistant.
