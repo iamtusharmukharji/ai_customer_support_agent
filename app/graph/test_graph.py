@@ -8,7 +8,7 @@ def run_tests():
     test_queries = [
         # "Where is my order ORD-2026-10001?",
         # "What is your standard return policy?"
-        "I have an issue with the received order, please help me",
+        # "I have an issue with the received order, please help me",
         "My order number is ORD-2026-10001, In this order I have a laptop and a smartphone out of which the laptop is damaged"
         # "What is the status of my refund REF-2026-50002?"
     ]
@@ -25,6 +25,7 @@ def run_tests():
         print(f"Ticket Subject   : {result.get('ticket_subject')}")
         print(f"Ticket Description   : {result.get('ticket_description')}")
         print(f"Ticket Priority   : {result.get('ticket_priority')}")
+        print(f"Final Response   : {result.get('response')}")
         print("------------ END ------------\n")
 
 if __name__ == "__main__":

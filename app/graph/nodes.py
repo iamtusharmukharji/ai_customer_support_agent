@@ -1,13 +1,13 @@
 from app.graph.state import SupportState
-from app.ai.llm import get_classifier_llm, get_general_llm, get_support_ticket_llm
+from app.ai.llm import get_classifier_llm, get_general_llm
 from app.tools import order_tool, faq_tool, refund_tool, support_ticket_tool
 from app.ai.structured_output import IntentExtraction
 from app.api.schemas import NewSupportTicket
 import uuid
 from langchain_core.messages import HumanMessage, SystemMessage
+from datetime import datetime
 
-
-classifier_llm = get_classifier_llm()
+classifier_llm = get_classifier_llm(provider='gemini')
 generic_llm = get_general_llm()
 # support_ticket_llm = get_support_ticket_llm()
 
@@ -57,7 +57,7 @@ def classify_intent(state: SupportState) -> dict:
         "intent" : result.intent,
         "order_number" : result.order_number,
         "refund_number" : result.refund_number,
-        "tikcet_priority" : result.ticket_priority,
+        "ticket_priority" : result.ticket_priority,
         "ticket_subject" : result.ticket_subject,
         "ticket_description" : result.ticket_description
     }
@@ -103,24 +103,10 @@ def handle_human(state: SupportState) -> dict:
     # No order details found
     if details_for_new_ticket.get("id") == None:
         return {"context" : f"No order details found for order_number = {order_number}"}
+
+    current_date = datetime.now()
+    ticket_num = f"TKT-{current_date.year}-{uuid.uuid4().hex[:5].upper()}"
     
-    # user_message = state.get('user_message')
-    ticket_num = f"TKT-2026-{uuid.uuid4().hex[:5].upper()}"
-    # SYS_PROMPT = f"""
-    # You are a AI assistant that extract data from user_prompt and
-    # helps to create a new support ticket. Use exact data for below given keys
-    # - ticket_number : {ticket_num}
-    # - order_id : {details_for_new_ticket['id']}
-    # - customer_id : {details_for_new_ticket['customer_id']}
-    # Other details can be extracted from user_prompt and provided details
-
-    # """
-    # message_array = [
-    #     SystemMessage(content=SYS_PROMPT),
-    #     HumanMessage(content=user_message)
-    # ]
-
-    # result : NewSupportTicket = support_ticket_llm.invoke(message_array)
     ticket_data = NewSupportTicket(
         ticket_number = ticket_num,
         order_id = details_for_new_ticket['id'],
