@@ -15,3 +15,7 @@ class NewSupportTicket(BaseModel):
     assigned_team : Optional[str] = ''
     created_at : datetime = Field(default_factory=datetime.now)
     resolved_at : Optional[datetime] = None
+
+class UserChat(BaseModel):
+    prompt : str
+    thread_id : str

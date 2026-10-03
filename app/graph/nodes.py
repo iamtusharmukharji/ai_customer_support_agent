@@ -62,11 +62,9 @@ def classify_intent(state: SupportState) -> dict:
         "ticket_description" : result.ticket_description
     }
 
-
 def handle_faq(state: SupportState) -> dict:
     faq_context = faq_tool.fetch_faq.invoke({})
     return {"context": faq_context}
-
 
 def handle_order(state: SupportState) -> dict:
     order_number = state.get('order_number')
@@ -75,7 +73,6 @@ def handle_order(state: SupportState) -> dict:
     context_string = order_tool.fetch_order_details.invoke({'order_number':order_number})
 
     return {'context':context_string}
-    
 
 def handle_refund(state: SupportState) -> dict:
     order_number = state.get("order_number")

@@ -15,6 +15,7 @@ class Credentials:
         self.db_password = os.getenv('DB_PASSWORD')
         self.gemini_model = os.getenv('GEMINI_MODEL')
         self.openai_model = os.getenv('OPENAI_MODEL_CHEAP')
+        self.pg_db_uri = os.getenv('PG_DB_URI')
 
 
 
