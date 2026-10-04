@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 from fastapi import Request
 from app.api.schemas import UserChat
+import time
 
 route = APIRouter(
     prefix="/chats",
@@ -15,7 +16,9 @@ async def chat(
     config = {"configurable": {"thread_id": chat_data.thread_id}}
     graph = request.app.state.graph
     response = await graph.ainvoke({"user_message":chat_data.prompt}, config = config)
-
+    print(response)
+    if "__interrupt__" in response:
+        return {"response": "Your request is being processed", "thread_id" : chat_data.thread_id}
     return {"response": response.get("response"), "thread_id" : chat_data.thread_id}
 
 @route.get('/{thread_id}/history')

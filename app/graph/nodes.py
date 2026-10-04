@@ -1,8 +1,10 @@
 from app.graph.state import SupportState
 from app.ai.llm import get_classifier_llm, get_general_llm
 from app.tools import order_tool, faq_tool, refund_tool, support_ticket_tool
+from app.api.services import order_service, refund_service
 from app.ai.structured_output import IntentExtraction
-from app.api.schemas import NewSupportTicket
+from app.api.schemas import NewSupportTicket, InitiateRefund
+from langgraph.types import interrupt
 import uuid
 from langchain_core.messages import HumanMessage, SystemMessage
 from datetime import datetime
@@ -16,7 +18,7 @@ You are an intent classification and entity extraction assistant for an e-commer
 Analyze the user's input and classify it into one of these intents:
 - FAQ: Inquiries about general policies, returns, shipping times, or FAQs.
 - ORDER: Inquiries regarding order status, delivery date, item details, or tracking.
-- REFUND: Inquiries about refund status, processing times, or refund IDs.
+- REFUND: Inquiries about refund status, processing times, refund IDs or wants to initate refund against any order_number.
 - HUMAN: Requests to speak to a agent, representative, or complaining about damaged items/escalations, whith order_number otherwise ask user to provide order_number with issue description.
 - UNKNOWN: Inquiries that do not match any of the above or are completely ambiguous.
 
@@ -57,6 +59,7 @@ def classify_intent(state: SupportState) -> dict:
         "intent" : result.intent,
         "order_number" : result.order_number,
         "refund_number" : result.refund_number,
+        "refund_intent" : result.refund_intent,
         "ticket_priority" : result.ticket_priority,
         "ticket_subject" : result.ticket_subject,
         "ticket_description" : result.ticket_description
@@ -74,18 +77,88 @@ def handle_order(state: SupportState) -> dict:
 
     return {'context':context_string}
 
-def handle_refund(state: SupportState) -> dict:
+async def handle_refund(state: SupportState) -> dict:
     order_number = state.get("order_number")
     refund_number = state.get("refund_number")
-
+    refund_intent = state.get('refund_intent')
+    context_string = ''
     # route tool call as per order_number or refund_number availability
     if order_number:
-        context_string = refund_tool.fetch_refund.invoke({'reference_number':order_number, 'reference_type':'order_number'})
+
+        # when user does enquiry for refund status
+        if refund_intent == 'status':
+            context_string = refund_tool.fetch_refund.invoke({'reference_number':order_number, 'reference_type':'order_number'})
+
+        # when user wants to initiate refund
+        elif refund_intent == 'initiate':
+            order_details = order_service.get_order_refund_details_by_order_number(order_number=order_number)
+            order_details = order_details.get('data')
+            
+            # if order_number is invalid
+            if order_details == None:
+            
+                context_string = f"No order found for order_number = {order_number}"
+            
+            else:
+                
+                existing_refund = order_details.get('refunds')
+                print("EXISTING REFUND", existing_refund)
+
+                # when there is any existing refund data exists for an order_number
+                if existing_refund:
+                    
+                    refund_list = existing_refund[0]
+                    existing_refund_number = refund_list['refund_number']
+                    existing_refund_status = refund_list['status']
+                    existing_refund_amount = refund_list['refund_amount']
+                    context_string = f"""
+                    Refund data already exists for order {order_number}
+                    - Refund Number : {existing_refund_number}
+                    - Current Status : {existing_refund_status}
+                    - Refund Amount : {existing_refund_amount}
+                    """
+                # when there is no refund data exists in table
+                else:
+
+                    # creates interrupt before creating actual entry for refund in DB
+                    approval_interrupt = interrupt({
+                        "action": "approve_refund_creation",
+                        "order_number": order_number,
+                        "customer_id": order_details.get("customer_id"),
+                        "amount": order_details.get("subtotal"),
+                        "reason": state.get("ticket_subject"),
+                    })
+
+                    # Handle Human Decision from resume payload
+                    is_approved = approval_interrupt.get("approved", False)
+                    admin_notes = approval_interrupt.get("notes", "No notes provided")
+
+                    # when any human(admin/supervisor) approves the interrupt with approved = True
+                    if is_approved:
+
+                        refund_details = InitiateRefund(
+                            refund_number = None, # Allow auto-generation of refund_number from schema's field_validator
+                            order_id = order_details['id'],
+                            customer_id = order_details['customer_id'],
+                            refund_amount = order_details['subtotal'],
+                            reason = state.get('ticket_subject'),
+                            status = 'processing',
+                        )
+
+                        create_refund = refund_service.initiate_refund(refund_details)
+                        context_string = f"Refund has been initiated for order {order_number}. Refund Number is {create_refund['data']}"
+                    
+                    # when admin/supervisor rejects the refund creation request
+                    else:
+                        context_string = f"Refund request for order {order_number} was REJECTED by human supervisor. Reason: {admin_notes}"
+
     
     elif refund_number:
+
         context_string = refund_tool.fetch_refund.invoke({'reference_number':refund_number, 'reference_type':'refund_number'})
 
     else:
+
         context_string = "No order number or refund reference number was provided in the query."
 
     return {"context": context_string}

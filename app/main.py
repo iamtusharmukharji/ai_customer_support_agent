@@ -8,7 +8,7 @@ from asyncio import WindowsSelectorEventLoopPolicy
 
 from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
-from app.api.routers import chat
+from app.api.routers import chat, admin
 from contextlib import asynccontextmanager
 from app.graph.graph import build_support_graph
 from psycopg_pool import AsyncConnectionPool
@@ -49,3 +49,4 @@ async def root():
     return RedirectResponse('/docs')
 
 app.include_router(chat.route)
+app.include_router(admin.route)
