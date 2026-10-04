@@ -106,7 +106,7 @@ class SupportTicket(Base):
     subject = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     priority = Column(Enum("low", "medium", "high", "urgent", name="ticket_priority_enum"))
-    status = Column(Enum("open", "in_progress", "resolved", "closed", name="ticket_status_enum"))
+    status = Column(Enum('open','in_progress','waiting_customer','resolved','closed', name="ticket_status_enum"))
     assigned_team = Column(String(100), nullable=True)
     created_at = Column(DateTime, server_default=func.now())
     resolved_at = Column(DateTime, nullable=True)

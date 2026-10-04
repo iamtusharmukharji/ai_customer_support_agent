@@ -22,14 +22,13 @@ def get_order_details(order_number:str) -> dict:
     finally:
         db.close()
 
-
 def get_order_refund_details_by_order_number(order_number:str) -> dict:
     db = SessionLocal()
     try:
         response = {"data":None}
         
         order_qry = db.query(models.Order).options(load_only(
-                            models.Order.order_number,
+                            models.Order.order_number, models.Order.customer_id,
                             models.Order.payment_status, models.Order.subtotal, models.Order.total_amount,
                             models.Order.created_at, models.Order.order_status, models.Order.payment_method,
                             models.Order.shipping_fee, models.Order.tracking_number, models.Order.delivered_at
@@ -48,7 +47,6 @@ def get_order_refund_details_by_order_number(order_number:str) -> dict:
 
     finally:
         db.close()
-
 
 def get_order_refund_details_by_refund_number(refund_number:str) -> dict:
     db = SessionLocal()

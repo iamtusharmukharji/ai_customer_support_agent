@@ -22,7 +22,17 @@ class IntentExtraction(BaseModel):
         default=None,
         description="The refund reference number if mentioned (e.g., REF-2026-50001)."
     )
+
+    refund_intent: Optional[Literal['status', 'initiate']] = Field(
+            default=None,
+            description="Intention of cutomer for refund."
+        )
+    ticket_subject: Optional[str]
+    ticket_priority: Literal['high', 'medium', 'low']
+    ticket_description: Optional[str]
     reasoning: str = Field(
         description="Brief step-by-step reasoning for why this intent and these entities were selected."
     )
+
+
 

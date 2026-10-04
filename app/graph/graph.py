@@ -10,9 +10,11 @@ from app.graph.nodes import (
     generate_response
 )
 from app.graph.edges import route_intent
+from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+from psycopg_pool import AsyncConnectionPool
 
 
-def build_support_graph():
+def build_support_graph(checkpointer=None):
 
     workflow = StateGraph(SupportState)
 
@@ -49,5 +51,5 @@ def build_support_graph():
     workflow.add_edge('unknown', "generate_final_response")
     workflow.add_edge('generate_final_response', END)
 
-    return workflow.compile()
+    return workflow.compile(checkpointer=checkpointer)
     

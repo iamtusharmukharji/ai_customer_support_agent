@@ -1,4 +1,4 @@
-from typing import TypedDict, Optional
+from typing import TypedDict, Optional, Literal
 
 
 class SupportState(TypedDict):
@@ -12,5 +12,9 @@ class SupportState(TypedDict):
     intent : Optional[str]
     order_number : Optional[str]
     refund_number : Optional[str]
+    refund_intent : Optional[Literal["status", "initiate"]]
+    ticket_subject : Optional[str]
+    ticket_priority : Optional[Literal['low', 'medium', 'high', 'urgent']]
+    ticket_description : Optional[str]
     context : Optional[str]
     response : Optional[str]
