@@ -21,7 +21,7 @@ from app.creds import credentials
 @asynccontextmanager
 async def lifespan(app:FastAPI):
     
-    print("------Application Started -------")
+    print("------Application Lifespan Started -------")
     asyncio.set_event_loop_policy(WindowsSelectorEventLoopPolicy())
     pool = AsyncConnectionPool(conninfo=credentials.pg_db_uri, max_size=20, open=False, kwargs={"autocommit": True})
     await pool.open()
@@ -31,10 +31,11 @@ async def lifespan(app:FastAPI):
     await checkpointer.setup()
 
     app.state.graph = build_support_graph(checkpointer= checkpointer)
-    print("------Application Startup Completed -------")
+    
     yield
 
     await pool.close()
+    print("------Application Lifespan Ended -------")
 
 
 app = FastAPI(

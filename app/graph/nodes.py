@@ -208,6 +208,6 @@ def generate_response(state: SupportState) -> dict:
             HumanMessage(content=user_message)
         ]
     
-    resposne = generic_llm.invoke(message_array)
+    response = generic_llm.invoke(message_array)
     # print(resposne.content)
-    return {"response" : resposne.content}
+    return {"response" : response.content}
